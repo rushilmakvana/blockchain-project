@@ -12,44 +12,7 @@ genesis_block = {'previous hash': '',
                  'index': 0, 'proof': 100, 'transactions': []}
 blockchain = [genesis_block]
 open_transection = []
-owner = 'raju'
-participents = {'raju'}
 
-
-def load_data():
-    with open('blockchain.txt', mode='r') as f:
-        file_content = f.readlines()
-        blockchain = json.loads(file_content[0][:-1])
-        updated_blockchain = []
-        for block in blockchain:
-            updated_block = {
-                'previous hash': block['previous hash'],
-                'index': block['index'],
-                'proof': block['proof'],
-                'transactions': [OrderedDict(
-                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]}
-            updated_blockchain.append(updated_block)
-            blockchain = updated_block
-        open_transection = json.loads(file_content[1])
-        updated_transaction = []
-        for tx in open_transection:
-            updated_transactions = {'previous hash': block['previous hash'],
-                                    'index': block['index'],
-                                    'proof': block['proof'],
-                                    'transactions': [OrderedDict(
-                                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])])for tx in block['transactions']]}
-            updated_transaction.append(updated_transactions)
-            open_transection = updated_transaction
-
-
-load_data()
-
-
-def save_data():
-    with open('blockchain.txt', mode='w') as f:
-        f.write(json.dumps(blockchain))
-        f.write('\n')
-        f.write(json.dumps(open_transection))
 
 
 def add_value(transaction_amount, last_transaction=[1]):
@@ -165,27 +128,7 @@ def varify_chain():
     for (index, block) in enumerate(blockchain):
         if index == 0:
             continue
-        if block['previous hash'] != hash_block(blockchain[index - 1]):
-            return False
-        if not valid_proof(block['transactions'][:-1], block['previous hash'], block['proof']):
-            print('invalid blockchain!!')
-            return False
-    return True
 
-
-def varify_transactions():
-    return all([varify_transaction(tx) for tx in open_transection])
-
-
-waiting_for_input = True
-while waiting_for_input:
-    print('1: add a new tranasction value ')
-    print('2: mine block')
-    print('3: output the blockchain blocks')
-    print('4: outputting the participents')
-    print('5: check transactions are valid')
-    print('h: manipulate the chain')
-    print('q: quit')
     user_choice = get_user_choice()
     if user_choice == '1':
         tx_data = get_transaction_value()
@@ -216,8 +159,7 @@ while waiting_for_input:
                     {'sender': 'raju', 'recipient': 'someone', 'amount': 100.0}
                 ],
             }
-    elif user_choice == 'q':
-        waiting_for_input = False
+
 
     else:
         print('input invalid')
@@ -227,5 +169,3 @@ while waiting_for_input:
 
     print('Balance of {} : {:6.2f} '.format('raju', get_balance(owner)))
 
-
-print('done')
