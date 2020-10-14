@@ -1,7 +1,7 @@
 genesis_block = {"previous hash": "", "index": 0, "transactions": []}
 blockchain = [genesis_block]
 open_transection = []
-owner = "Rj"
+owner = "p_key"
 
 
 def add_value(transaction_amount, last_transaction=[1]):
@@ -78,14 +78,12 @@ def varify_chain():
     for (index, block) in enumerate(blockchain):
         if index == 0:
             continue
-        if block["previous hash"] != hash_block(blockchain[index - 1]):
+        if block["previous hash"] != hash_block(blockchain[index - 1] ):
             return False
     return True
 
-
-waiting_for_input = True
 # a while loop for the user input interface.
-while waiting_for_input:
+while True:
     print("1: add a new tranasction value ")
     print("2: output the blockchain blockchain blocks")
     print("3: output the blockchain blocks")
@@ -115,15 +113,10 @@ while waiting_for_input:
             }
         elif user_choice == "q":
             # this will lead to the loop to exist because it running condition
-            waiting_for_input == False
+            break
         else:
             print("input was unvalid,please select value from the list ")
-        if not varify_chain():
-            print_blockcahain_elements()
-            print("invalid blockchain")
-            break
+
     else:
         print("user left")
 
-
-print("done")
