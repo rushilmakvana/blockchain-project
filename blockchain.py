@@ -1,122 +1,171 @@
-genesis_block = {"previous hash": "", "index": 0, "transactions": []}
+from functools import reduce
+import hashlib
+import json
+from collections import OrderedDict
+
+
+from hash_util import hash_string_256, hash_block
+
+
+REWARD = 10
+genesis_block = {'previous hash': '',
+                 'index': 0, 'proof': 100, 'transactions': []}
 blockchain = [genesis_block]
 open_transection = []
-owner = "p_key"
+
 
 
 def add_value(transaction_amount, last_transaction=[1]):
     blockchain.append([last_transaction, transaction_amount])
 
 
-def hash_block():
-    return "-".join([str(last_block[key]) for key in last_block])
+def valid_proof(transactions, last_hash, proof):
+    guess = (str(transactions)+str(last_hash)+str(proof)).encode()
+    print(guess)
+    guess_hash = hash_string_256(guess)
+    print(guess_hash)
+    return guess_hash[0: 2] == '00'
+
+
+def proof_of_work():
+    last_block = blockchain[-1]
+    last_hash = hash_block(last_block)
+    proof = 0
+    while not valid_proof(open_transection, last_hash, proof):
+        proof += 1
+    return proof
 
 
 def get_last_blockcahin_value():
-    """return the last value from blockchain"""
     if len(blockchain) < 1:
         return None
     else:
         return blockchain[-1]
 
 
-""" this function accepts two arguments
-one required one(transaction amonut) and optional  one is (last transaction)
-optional one is optimal because it has default vaue is [1] """
+def get_balance(participant):
+    tx_sender = [[tx['amount'] for tx in block['transactions']
+                  if tx['sender'] == participant] for block in blockchain]
+    open_tx_sender = [tx['amount']
+                      for tx in open_transection if tx['sender'] == participant]
+    tx_sender.append(open_tx_sender)
+    print(tx_sender)
+    amount_sent = reduce(
+        lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum+0, tx_sender, 0)
+    tx_recipient = [[tx['amount'] for tx in block['transactions']
+                     if tx['recipient'] == participant] for block in blockchain]
+    amount_recieved = reduce(
+        lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum+0, tx_recipient, 0)
+    return amount_recieved - amount_sent
+
+
+def varify_transaction(transaction):
+    sender_balance = get_balance(transaction['sender'])
+    return sender_balance >= transaction['amount']
 
 
 def add_transaction(recipient, sender=owner, amount=1.0):
-    """append a new value as well as last bockchain valuse to the blockchain
-    arguments:
-        sender:the sender of the coins
-        recipient:the recipient of the coins
-        amount:the amount of coins sent with the transaction(default=1.0)
-    """
-
-    transaction = {"sender": sender, "recipient": recipient, "amount": amount}
-    open_transection.append(transaction)
+    # transaction = {
+    #   'sender': sender,
+    #  'recipient': recipient,
+    # 'amount': amount
+   # }
+    transaction = OrderedDict(
+        [('sender', sender), ('recipient', recipient), ('amount', amount)])
+    if varify_transaction(transaction):
+        open_transection.append(transaction)
+        participents.add(sender)
+        participents.add(recipient)
+        save_data()
+        return True
+    return False
 
 
 def mine_block():
     last_block = blockchain[-1]
     hashed_block = hash_block(last_block)
-    #  print(hashed_block)
+    proof = proof_of_work()
+   # reward_transaction = {
+    #    'sender': 'Mining',
+    #   'recipient': owner,
+    #  'amount': REWARD
+    # }
+    reward_transaction = OrderedDict(
+        [('sender', 'Mining'), ('recipient', owner), ('amount', REWARD)])
+    copied_transection = open_transection[:]
+    copied_transection.append(reward_transaction)
     block = {
-        "previous hash": hashed_block,
-        "index": len(blockchain),
-        "transactions": open_transection,
+        'previous hash': hashed_block,
+        'index': len(blockchain),
+        'proof': proof,
+        'transactions': copied_transection
     }
     blockchain.append(block)
+    save_data()
+    return True
 
 
 def get_transaction_value():
-    """returns the input of the user (new amount as float)
-    """
-    tx_recipient = input("name of reciever:")
-    tx_amount = float(input("enter transaction amount please:"))
-    return tx_recipient, tx_amount
+    tx_recipient = str(input('name of reciever:'))
+    tx_amount = float(input('enter amount :'))
+    return (tx_recipient, tx_amount)
 
 
 def get_user_choice():
-    """user choice and return it"""
-    user_input = input("your choice:")
+    user_input = str(input('your choice:'))
     return user_input
 
 
 def print_blockcahain_elements():
-    """prints all block in blockchain
-    output the blockchain list"""
     for block in blockchain:
-        print("outputting the blockchain")
+        print('outputting the blockchain')
         print(block)
     else:
-        print("-" * 20)
+        print('-' * 140)
 
 
 def varify_chain():
-    """varify the current blockchain and return true if it is valid,false otherwise"""
     for (index, block) in enumerate(blockchain):
         if index == 0:
             continue
-        if block["previous hash"] != hash_block(blockchain[index - 1] ):
-            return False
-    return True
 
-# a while loop for the user input interface.
-while True:
-    print("1: add a new tranasction value ")
-    print("2: output the blockchain blockchain blocks")
-    print("3: output the blockchain blocks")
-    print("h: manipulate the chain")
-    print("q: quit")
     user_choice = get_user_choice()
-    if user_choice == "1":
+    if user_choice == '1':
         tx_data = get_transaction_value()
-        # recipient, amount == tx_data
-        # add the transaction amount to the blockchain
-        # add_transaction(recipient, amount=amount)
+        recipient, amount = tx_data
+        if add_transaction(recipient, amount=amount):
+            print('transaction added!')
+        else:
+            print('transaction failed')
         print(open_transection)
-    elif user_choice == "2":
-        pr = mine_block()
-        print(pr)
-    elif user_choice == "3":
+    elif user_choice == '2':
+        if mine_block():
+            open_transection = []
+    elif user_choice == '3':
         print_blockcahain_elements()
-    elif user_choice == "h":
-        # make sure that you dont try  to "hack" the blockchain if it is empty
+    elif user_choice == '4':
+        print(participents)
+    elif user_choice == '5':
+        if varify_transactions():
+            print('all are valid')
+        else:
+            print('not valid')
+    elif user_choice == 'h':
         if len(blockchain) >= 1:
             blockchain[0] = {
-                "previous hash": "",
-                "index": 0,
-                "transactions": [
-                    {"sender": "rushil", "recipeint": "someone", "amount": 100.0}
+                'previous hash': '',
+                'index': 0,
+                'transactions': [
+                    {'sender': 'raju', 'recipient': 'someone', 'amount': 100.0}
                 ],
             }
-        elif user_choice == "q":
-            # this will lead to the loop to exist because it running condition
-            break
-        else:
-            print("input was unvalid,please select value from the list ")
+
 
     else:
-        print("user left")
+        print('input invalid')
+    if not varify_chain():
+        print_blockcahain_elements()
+        print('invalid blockchain')
+
+    print('Balance of {} : {:6.2f} '.format('raju', get_balance(owner)))
 
